@@ -6,8 +6,8 @@
   <title>学校備品貸出管理システム - lendapp</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- FontAwesome Icons (最新安定版6.5.1およびクロスオリジン属性の調整) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     body {
@@ -432,16 +432,28 @@
         console.warn("Google Login Domain Notice:", err.code || err.message);
         
         const errorTitle = document.getElementById('login-error-title');
+        const currentHostname = window.location.hostname || 'saa24014-gif.github.io';
         
-        // 承認されていないドメイン（iframeのプレビュー等）でのエラーハンドリング
         if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.includes('unauthorized-domain'))) {
-          if (errorTitle) errorTitle.textContent = "プレビュー画面での認証制限";
+          if (errorTitle) errorTitle.textContent = "Googleログインのドメイン未承認エラー";
           loginErrorText.innerHTML = `
-            <p class="font-medium text-amber-900">この埋め込み画面（iframe）ではGoogleのセキュリティ制限のためポップアップログインが利用できません。</p>
-            <p class="text-[11px] text-amber-800 my-1.5">
-              下のボタンから「ゲストログイン」または「デモモード」を選択すると、すぐに備品管理のすべての機能をお試しいただけます。
-            </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <div class="space-y-2">
+              <p class="font-medium text-amber-900">
+                現在のWebサイト（<code class="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-red-700">${escapeHTML(currentHostname)}</code>）がFirebaseで承認されていません。
+              </p>
+              <div class="bg-amber-100/80 p-3 rounded-lg border border-amber-300 text-[11px] leading-relaxed text-amber-900 space-y-1">
+                <p class="font-bold border-b border-amber-200 pb-1 mb-1">【解決方法】Firebaseコンソールで下記を許可してください：</p>
+                <ol class="list-decimal list-inside space-y-1">
+                  <li><strong>Firebase Console</strong> > <strong>Authentication</strong> > <strong>設定 (Settings)</strong> を開く</li>
+                  <li><strong>承認済みドメイン (Authorized domains)</strong> の「ドメインを追加」をクリック</li>
+                  <li><code class="bg-white px-1 py-0.5 rounded border border-amber-300 font-mono font-bold text-slate-800">${escapeHTML(currentHostname)}</code> を入力して追加</li>
+                </ol>
+              </div>
+              <p class="text-[11px] text-amber-800">
+                ※ 設定完了までの間は、下記の「ゲストログイン」または「デモモード」ですぐに動作確認できます。
+              </p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
               <button onclick="window.startAnonymousLogin()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
                 <i class="fa-solid fa-user-secret"></i> ゲストログイン (Firebase)
               </button>
@@ -473,7 +485,7 @@
             </div>
           `;
         }
-        loginError.classList.remove('hidden');
+        loginError.classList.add('hidden');
       }
     });
 
