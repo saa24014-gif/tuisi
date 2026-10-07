@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学校備品貸出管理システム - lendapp</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 antialiased flex flex-col">
+
+  <!-- ヘッダー -->
+  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid font-bold fa-boxes-packing text-2xl text-amber-300"></i>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">備品貸出管理</h1>
+          <p class="text-xs text-indigo-200">学校工具・機材トラッカー (lendapp)</p>
+        </div>
+      </div>
+      
+      <!-- ユーザー情報 & ログアウトボタン -->
+      <div id="user-profile" class="hidden flex items-center gap-3">
+        <div class="flex items-center gap-2 bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-600">
+          <div class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold border border-white shrink-0 overflow-hidden" id="user-avatar-container">
+            <i class="fa-solid fa-user" id="user-avatar-icon"></i>
+            <img id="user-avatar" class="w-full h-full object-cover hidden" src="" alt="Avatar" onerror="this.classList.add('hidden'); document.getElementById('user-avatar-icon').classList.remove('hidden');">
+          </div>
+          <span id="user-name" class="text-xs font-medium text-indigo-100 max-w-[120px] sm:max-w-[180px] truncate">ユーザー</span>
+        </div>
+        <button id="btn-logout" class="bg-indigo-600 hover:bg-red-600 text-white text-xs px-3 py-2 rounded-lg font-medium transition duration-200 flex items-center gap-1">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span class="hidden sm:inline">ログアウト</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6">
+
+    <!-- 1. 未ログイン画面 -->
+    <div id="view-login" class="flex flex-col items-center justify-center py-8 px-4">
+      <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border border-slate-200">
+        <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 text-2xl shadow-inner">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">ログインが必要です</h2>
+        <p class="text-sm text-slate-500 mb-6 leading-relaxed">
+          学校備品の貸出・返却の記録を行うには、ログインするか、デモモードでお試しください。
+        </p>
+
+        <!-- 未承認ドメイン／ログインエラー通知用メッセージエリア -->
+        <div id="login-error" class="hidden mb-6 p-4 bg-amber-50 border border-amber-300 text-amber-900 text-xs rounded-xl text-left leading-relaxed shadow-sm">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2 font-bold text-amber-800 text-sm">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
+              <span id="login-error-title">ログインエラーが発生しました</span>
+            </div>
+            <button onclick="document.getElementById('login-error').classList.add('hidden')" class="text-amber-600 hover:text-amber-800 p-1">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div id="login-error-text" class="space-y-2 mt-2"></div>
+        </div>
+
+        <div class="space-y-3">
+          <!-- Google ログイン -->
+          <button id="btn-google-login" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-semibold py-3 px-4 rounded-xl shadow-sm transition-all duration-200 active:scale-[0.98]">
+            <svg class="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Googleでログイン
+          </button>
+
+          <!-- 匿名ログイン（Googleログインがブロックされる環境用） -->
+          <button id="btn-anon-login" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 active:scale-[0.98]">
+            <i class="fa-solid fa-user-secret"></i>
+            ゲストログイン (Firebase使用)
+          </button>
+
+          <!-- デモモードボタン（ログイン設定なしで試す） -->
+          <button id="btn-demo-mode" class="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-3 px-4 rounded-xl transition duration-200 active:scale-[0.98]">
+            <i class="fa-solid fa-vial"></i>
+            オフラインで試す（デモモード）
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. ログイン後画面 (メイン機能) -->
+    <div id="view-app" class="hidden space-y-6">
+      
+      <!-- 上段: 新規登録フォーム -->
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6 transition-all">
+        <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+          <i class="fa-solid fa-pen-to-square text-indigo-600"></i>
+          新しい貸出を記録する
+        </h2>
+
+        <!-- 未入力・エラーメッセージ表示枠 -->
+        <div id="form-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl flex items-center gap-2">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="form-error-text">すべての項目を正しく入力してください。</span>
+        </div>
+
+        <form id="loan-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <!-- 項目1: 備品名 -->
+          <div class="lg:col-span-1">
+            <label class="block text-xs font-bold text-slate-600 mb-1">備品名 <span class="text-red-500">*</span></label>
+            <input type="text" id="input-item-name" placeholder="例: インパクトドライバー" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+          </div>
+
+          <!-- 項目2: 借りた人の名前 -->
+          <div class="lg:col-span-1">
+            <label class="block text-xs font-bold text-slate-600 mb-1">借りた人の名前 <span class="text-red-500">*</span></label>
+            <input type="text" id="input-borrower-name" placeholder="例: 山田太郎" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+          </div>
+
+          <!-- 項目3: 貸出日 -->
+          <div class="lg:col-span-1">
+            <label class="block text-xs font-bold text-slate-600 mb-1">貸出日 <span class="text-red-500">*</span></label>
+            <input type="date" id="input-borrow-date" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+          </div>
+
+          <!-- 項目4: 返却予定日 -->
+          <div class="lg:col-span-1">
+            <label class="block text-xs font-bold text-slate-600 mb-1">返却予定日 <span class="text-red-500">*</span></label>
+            <input type="date" id="input-due-date" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+          </div>
+
+          <!-- 項目5: 返却状況 & ボタン -->
+          <div class="lg:col-span-1 flex flex-col justify-end">
+            <label class="block text-xs font-bold text-slate-600 mb-1">返却状況</label>
+            <select id="input-status" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2">
+              <option value="未返却">未返却</option>
+              <option value="返却済み">返却済み</option>
+            </select>
+          </div>
+
+          <div class="sm:col-span-2 lg:col-span-5 flex justify-end">
+            <button type="submit" id="btn-submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2 active:scale-95">
+              <i class="fa-solid fa-plus"></i>
+              登録する
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 下段: 検索・フィルター・集計 & 一覧表示 -->
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
+        
+        <!-- コントロールバー (検索・フィルタリング) -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+          
+          <div>
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-indigo-600"></i>
+              貸出記録一覧
+            </h2>
+            <p id="stats-summary" class="text-xs text-slate-500 mt-1">読み込み中...</p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div class="relative min-w-[200px]">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="search-query" placeholder="備品名や名前で検索..." class="w-full pl-8 pr-3 py-1.5 bg-slate-100 border border-transparent rounded-lg text-xs focus:bg-white focus:border-indigo-400 focus:outline-none">
+            </div>
+
+            <select id="filter-status" class="px-3 py-1.5 bg-slate-100 border border-transparent rounded-lg text-xs font-medium focus:bg-white focus:border-indigo-400 focus:outline-none">
+              <option value="all">すべて表示</option>
+              <option value="unreturned" selected>未返却のみ</option>
+              <option value="overdue">延滞中のみ</option>
+              <option value="returned">返却済みのみ</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- 貸出リスト (カード) -->
+        <div id="loans-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        </div>
+
+        <!-- データゼロ時の空状態 -->
+        <div id="empty-state" class="hidden py-12 text-center">
+          <i class="fa-solid fa-inbox text-4xl text-slate-300 mb-3 block"></i>
+          <p class="text-sm text-slate-500 font-medium">該当する貸出記録が見つかりません</p>
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-200 text-slate-500 text-xs text-center py-4 mt-auto">
+    <p>学校備品貸出管理システム &copy; lendapp</p>
+  </footer>
+
+  <!-- トースト通知 UI -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-800 text-white text-xs px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 border border-slate-700">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+    <span id="toast-message">処理が完了しました</span>
+  </div>
+
+  <!-- Firebase SDK Modules -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithPopup, 
+      signInAnonymously,
+      GoogleAuthProvider, 
+      signOut, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      updateDoc, 
+      deleteDoc, 
+      doc, 
+      onSnapshot, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // ----------------------------------------------------
+    // Firebase 設定
+    // ----------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyDMaW-_Xyyiv1CQd5-jJ4fq5EUsOP9fq3k",
+      authDomain: "tuisi-a97c5.firebaseapp.com",
+      projectId: "tuisi-a97c5",
+      storageBucket: "tuisi-a97c5.firebasestorage.app",
+      messagingSenderId: "902424357077",
+      appId: "1:902424357077:web:2b81dd8b2ecb088d04da5c"
+    };
+
+    // Firebase 初期化
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    // グローバル状態
+    let currentUser = null;
+    let isDemoMode = false;
+    let rawLoansData = [];
+
+    // DOM要素参照
+    const viewLogin = document.getElementById('view-login');
+    const viewApp = document.getElementById('view-app');
+    const userProfile = document.getElementById('user-profile');
+    const userNameEl = document.getElementById('user-name');
+    const userAvatarEl = document.getElementById('user-avatar');
+    const userAvatarIcon = document.getElementById('user-avatar-icon');
+    const btnGoogleLogin = document.getElementById('btn-google-login');
+    const btnAnonLogin = document.getElementById('btn-anon-login');
+    const btnDemoMode = document.getElementById('btn-demo-mode');
+    const btnLogout = document.getElementById('btn-logout');
+    const loginError = document.getElementById('login-error');
+    const loginErrorText = document.getElementById('login-error-text');
+
+    const loanForm = document.getElementById('loan-form');
+    const inputItemName = document.getElementById('input-item-name');
+    const inputBorrowerName = document.getElementById('input-borrower-name');
+    const inputBorrowDate = document.getElementById('input-borrow-date');
+    const inputDueDate = document.getElementById('input-due-date');
+    const inputStatus = document.getElementById('input-status');
+    const formError = document.getElementById('form-error');
+    const formErrorText = document.getElementById('form-error-text');
+
+    const loansContainer = document.getElementById('loans-container');
+    const emptyState = document.getElementById('empty-state');
+    const searchQuery = document.getElementById('search-query');
+    const filterStatus = document.getElementById('filter-status');
+    const statsSummary = document.getElementById('stats-summary');
+
+    // トースト通知を表示
+    const showToast = (msg, iconClass = 'fa-circle-check text-emerald-400') => {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      if (!toast || !toastMsg) return;
+      
+      toastMsg.textContent = msg;
+      toast.querySelector('i').className = `fa-solid ${iconClass} text-sm`;
+      
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    };
+
+    // 今日の日付文字列を取得 (YYYY-MM-DD)
+    const getTodayString = () => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    // 1週間後の日付文字列を取得
+    const getDefaultDueDateString = () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 7);
+      const yyyy = future.getFullYear();
+      const mm = String(future.getMonth() + 1).padStart(2, '0');
+      const dd = String(future.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    // アバターアイコン設定
+    const updateUserAvatar = (photoURL) => {
+      if (photoURL) {
+        userAvatarEl.src = photoURL;
+        userAvatarEl.classList.remove('hidden');
+        userAvatarIcon.classList.add('hidden');
+      } else {
+        userAvatarEl.classList.add('hidden');
+        userAvatarIcon.classList.remove('hidden');
+      }
+    };
+
+    // フォームの初期値設定
+    const resetFormDefaults = () => {
+      inputItemName.value = '';
+      if (currentUser && currentUser.displayName) {
+        inputBorrowerName.value = currentUser.displayName;
+      } else {
+        inputBorrowerName.value = 'ゲストユーザー';
+      }
+      inputBorrowDate.value = getTodayString();
+      inputDueDate.value = getDefaultDueDateString();
+      inputStatus.value = '未返却';
+      hideFormError();
+    };
+
+    // エラー表示ヘルパー
+    const showFormError = (msg) => {
+      formErrorText.textContent = msg;
+      formError.classList.remove('hidden');
+    };
+    const hideFormError = () => {
+      formError.classList.add('hidden');
+    };
+
+    // Auth 状態の監視
+    onAuthStateChanged(auth, (user) => {
+      if (user && !isDemoMode) {
+        currentUser = user;
+        userNameEl.textContent = user.isAnonymous 
+          ? 'ゲストユーザー (Firebase)' 
+          : (user.displayName || user.email || 'ユーザー');
+        
+        updateUserAvatar(user.photoURL);
+        
+        viewLogin.classList.add('hidden');
+        viewApp.classList.remove('hidden');
+        userProfile.classList.remove('hidden');
+
+        resetFormDefaults();
+        subscribeLoansData();
+      } else if (!isDemoMode) {
+        currentUser = null;
+        viewApp.classList.add('hidden');
+        userProfile.classList.add('hidden');
+        viewLogin.classList.remove('hidden');
+      }
+    });
+
+    // 匿名ログイン実行
+    const startAnonymousLogin = async () => {
+      loginError.classList.add('hidden');
+      try {
+        await signInAnonymously(auth);
+        showToast('ゲストとしてログインしました');
+      } catch (err) {
+        console.warn("Anonymous auth fallback:", err);
+        showToast('ゲスト認証制限のためデモモードで起動します', 'fa-triangle-exclamation text-amber-400');
+        startDemoMode();
+      }
+    };
+
+    window.startAnonymousLogin = startAnonymousLogin;
+
+    // デモモード開始ヘルパー
+    const startDemoMode = () => {
+      isDemoMode = true;
+      currentUser = { displayName: 'デモユーザー', uid: 'demo-user' };
+      userNameEl.textContent = 'デモユーザー (オフライン)';
+      updateUserAvatar(null);
+      
+      viewLogin.classList.add('hidden');
+      viewApp.classList.remove('hidden');
+      userProfile.classList.remove('hidden');
+
+      showToast('オフラインデモモードで起動しました', 'fa-vial text-indigo-400');
+      resetFormDefaults();
+      loadDemoData();
+    };
+
+    window.startDemoMode = startDemoMode;
+
+    // ゲストログインボタン
+    btnAnonLogin.addEventListener('click', () => {
+      startAnonymousLogin();
+    });
+
+    // Googleログインボタン (プレビューのドメイン制限エラーをキャッチ)
+    btnGoogleLogin.addEventListener('click', async () => {
+      loginError.classList.add('hidden');
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.warn("Google Login Domain Notice:", err.code || err.message);
+        
+        const errorTitle = document.getElementById('login-error-title');
+        
+        // 承認されていないドメイン（iframeのプレビュー等）でのエラーハンドリング
+        if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.includes('unauthorized-domain'))) {
+          if (errorTitle) errorTitle.textContent = "プレビュー画面での認証制限";
+          loginErrorText.innerHTML = `
+            <p class="font-medium text-amber-900">この埋め込み画面（iframe）ではGoogleのセキュリティ制限のためポップアップログインが利用できません。</p>
+            <p class="text-[11px] text-amber-800 my-1.5">
+              下のボタンから「ゲストログイン」または「デモモード」を選択すると、すぐに備品管理のすべての機能をお試しいただけます。
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <button onclick="window.startAnonymousLogin()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-user-secret"></i> ゲストログイン (Firebase)
+              </button>
+              <button onclick="window.startDemoMode()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-vial"></i> オフラインデモモード
+              </button>
+            </div>
+          `;
+        } else if (err.code === 'auth/popup-blocked') {
+          if (errorTitle) errorTitle.textContent = "ポップアップがブロックされました";
+          loginErrorText.innerHTML = `
+            <p>ブラウザのポップアップブロック機能によりログイン画面が開けませんでした。</p>
+            <div class="pt-2">
+              <button onclick="window.startDemoMode()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-vial"></i> デモモードで試す
+              </button>
+            </div>
+          `;
+        } else if (err.code === 'auth/popup-closed-by-user') {
+          if (errorTitle) errorTitle.textContent = "ログインが中断されました";
+          loginErrorText.innerHTML = `<p>Googleログインの画面が閉じられました。</p>`;
+        } else {
+          if (errorTitle) errorTitle.textContent = "ログインエラー";
+          loginErrorText.innerHTML = `
+            <p>エラーが発生しました: ${escapeHTML(err.message)}</p>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <button onclick="window.startAnonymousLogin()" class="bg-slate-800 hover:bg-slate-900 text-white py-1.5 px-3 rounded-lg text-xs">ゲストログイン</button>
+              <button onclick="window.startDemoMode()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 px-3 rounded-lg text-xs">デモモード</button>
+            </div>
+          `;
+        }
+        loginError.classList.remove('hidden');
+      }
+    });
+
+    // デモモードボタン
+    btnDemoMode.addEventListener('click', () => {
+      startDemoMode();
+    });
+
+    // ログアウトボタン
+    btnLogout.addEventListener('click', async () => {
+      if (isDemoMode) {
+        isDemoMode = false;
+        currentUser = null;
+        viewApp.classList.add('hidden');
+        userProfile.classList.add('hidden');
+        viewLogin.classList.remove('hidden');
+        showToast('ログアウトしました');
+      } else {
+        try {
+          await signOut(auth);
+          showToast('ログアウトしました');
+        } catch (err) {
+          console.error("Logout Error:", err);
+        }
+      }
+    });
+
+    // 貸出登録フォーム送信処理
+    loanForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideFormError();
+
+      const itemName = inputItemName.value.trim();
+      const borrowerName = inputBorrowerName.value.trim();
+      const borrowDate = inputBorrowDate.value;
+      const dueDate = inputDueDate.value;
+      const status = inputStatus.value;
+
+      if (!itemName) {
+        showFormError('「備品名」を入力してください。');
+        inputItemName.focus();
+        return;
+      }
+      if (!borrowerName) {
+        showFormError('「借りた人の名前」を入力してください。');
+        inputBorrowerName.focus();
+        return;
+      }
+      if (!borrowDate) {
+        showFormError('「貸出日」を選択してください。');
+        return;
+      }
+      if (!dueDate) {
+        showFormError('「返却予定日」を選択してください。');
+        return;
+      }
+      if (dueDate < borrowDate) {
+        showFormError('「返却予定日」は貸出日以降の日付にしてください。');
+        return;
+      }
+
+      if (isDemoMode) {
+        // デモモード時：LocalStorageに保存
+        const newDemoItem = {
+          id: 'demo-' + Date.now(),
+          itemName,
+          borrowerName,
+          borrowDate,
+          dueDate,
+          status,
+          createdAtMillis: Date.now()
+        };
+        const demoLoans = JSON.parse(localStorage.getItem('demo_loans') || '[]');
+        demoLoans.unshift(newDemoItem);
+        localStorage.setItem('demo_loans', JSON.stringify(demoLoans));
+        loadDemoData();
+        resetFormDefaults();
+        showToast('貸出記録を登録しました（デモ）');
+        return;
+      }
+
+      try {
+        // Firestoreにデータ追加
+        const colRef = collection(db, 'equipment_loans');
+        await addDoc(colRef, {
+          itemName: itemName,
+          borrowerName: borrowerName,
+          borrowDate: borrowDate,
+          dueDate: dueDate,
+          status: status,
+          createdAt: serverTimestamp(),
+          createdByUid: currentUser ? currentUser.uid : null
+        });
+
+        resetFormDefaults();
+        showToast('貸出記録を登録しました');
+
+      } catch (err) {
+        console.error("Data Add Error:", err);
+        showFormError('登録中にエラーが発生しました: ' + err.message);
+      }
+    });
+
+    // デモデータのロード
+    const loadDemoData = () => {
+      const stored = localStorage.getItem('demo_loans');
+      if (stored) {
+        rawLoansData = JSON.parse(stored);
+      } else {
+        // 初期サンプルデータ
+        rawLoansData = [
+          {
+            id: 'demo-1',
+            itemName: 'プロジェクター (EPSON)',
+            borrowerName: '佐藤 健',
+            borrowDate: getTodayString(),
+            dueDate: getDefaultDueDateString(),
+            status: '未返却',
+            createdAtMillis: Date.now()
+          },
+          {
+            id: 'demo-2',
+            itemName: '電動ドライバーセット',
+            borrowerName: '鈴木 花子',
+            borrowDate: '2026-10-01',
+            dueDate: '2026-10-05',
+            status: '未返却',
+            createdAtMillis: Date.now() - 100000
+          }
+        ];
+        localStorage.setItem('demo_loans', JSON.stringify(rawLoansData));
+      }
+      renderLoansList();
+    };
+
+    // Firestoreデータの一時購読
+    let unsubscribe = null;
+    const subscribeLoansData = () => {
+      if (unsubscribe) unsubscribe();
+
+      const colRef = collection(db, 'equipment_loans');
+      unsubscribe = onSnapshot(colRef, (snapshot) => {
+        rawLoansData = [];
+        snapshot.forEach((docSnap) => {
+          rawLoansData.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+        });
+
+        rawLoansData.sort((a, b) => {
+          const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : a.createdAt) : Date.now();
+          const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : b.createdAt) : Date.now();
+          return timeB - timeA;
+        });
+
+        renderLoansList();
+      }, (err) => {
+        console.error("Firestore Listen Error:", err);
+      });
+    };
+
+    // 検索・フィルタリング・描画処理
+    const renderLoansList = () => {
+      const search = searchQuery.value.toLowerCase().trim();
+      const filter = filterStatus.value;
+      const todayStr = getTodayString();
+
+      const filtered = rawLoansData.filter(item => {
+        const matchSearch = 
+          (item.itemName || '').toLowerCase().includes(search) || 
+          (item.borrowerName || '').toLowerCase().includes(search);
+
+        const isOverdue = (item.status === '未返却') && (item.dueDate < todayStr);
+
+        let matchFilter = true;
+        if (filter === 'unreturned') {
+          matchFilter = (item.status === '未返却');
+        } else if (filter === 'overdue') {
+          matchFilter = isOverdue;
+        } else if (filter === 'returned') {
+          matchFilter = (item.status === '返却済み');
+        }
+
+        return matchSearch && matchFilter;
+      });
+
+      const totalCount = rawLoansData.length;
+      const unreturnedCount = rawLoansData.filter(i => i.status === '未返却').length;
+      const overdueCount = rawLoansData.filter(i => i.status === '未返却' && i.dueDate < todayStr).length;
+
+      statsSummary.innerHTML = `全 <span class="font-bold text-slate-700">${totalCount}</span> 件 | 未返却 <span class="font-bold text-amber-600">${unreturnedCount}</span> 件 | 延滞 <span class="font-bold text-red-600">${overdueCount}</span> 件`;
+
+      loansContainer.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      filtered.forEach(item => {
+        const isOverdue = (item.status === '未返却') && (item.dueDate < todayStr);
+        const isReturned = (item.status === '返却済み');
+
+        const card = document.createElement('div');
+        
+        let borderClass = 'border-slate-200 bg-white';
+        if (isOverdue) {
+          borderClass = 'border-red-300 bg-red-50/60 ring-1 ring-red-200';
+        } else if (isReturned) {
+          borderClass = 'border-slate-200 bg-slate-50/70 opacity-80';
+        }
+
+        card.className = `rounded-2xl border p-4 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between ${borderClass}`;
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <h3 class="font-bold text-base text-slate-800 break-words">${escapeHTML(item.itemName)}</h3>
+              ${getStatusBadgeHTML(item.status, isOverdue)}
+            </div>
+
+            <div class="space-y-1.5 text-xs text-slate-600 my-3">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-user text-slate-400 w-4 text-center"></i>
+                <span>借用者: <strong class="text-slate-800 font-semibold">${escapeHTML(item.borrowerName)}</strong></span>
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-calendar-day text-slate-400 w-4 text-center"></i>
+                <span>貸出日: ${item.borrowDate}</span>
+              </div>
+              <div class="flex items-center gap-2 ${isOverdue ? 'text-red-600 font-bold' : ''}">
+                <i class="fa-solid fa-calendar-check text-slate-400 w-4 text-center"></i>
+                <span>返却予定日: ${item.dueDate} ${isOverdue ? '(延滞中)' : ''}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-200/60 flex items-center justify-between gap-2 mt-2">
+            <button class="btn-toggle-status text-xs font-semibold py-1.5 px-3 rounded-lg transition duration-200 flex items-center gap-1.5 ${
+              isReturned 
+                ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' 
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+            }" data-id="${item.id}" data-status="${item.status}">
+              <i class="fa-solid ${isReturned ? 'fa-rotate-left' : 'fa-check'}"></i>
+              ${isReturned ? '未返却に戻す' : '返却済みにする'}
+            </button>
+
+            <button class="btn-delete text-xs text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition" data-id="${item.id}" title="記録を削除">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+
+        loansContainer.appendChild(card);
+      });
+
+      // トグルボタン処理
+      document.querySelectorAll('.btn-toggle-status').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const docId = e.currentTarget.getAttribute('data-id');
+          const currentStatus = e.currentTarget.getAttribute('data-status');
+          const nextStatus = currentStatus === '返却済み' ? '未返却' : '返却済み';
+
+          if (isDemoMode) {
+            const demoLoans = JSON.parse(localStorage.getItem('demo_loans') || '[]');
+            const idx = demoLoans.findIndex(i => i.id === docId);
+            if (idx !== -1) {
+              demoLoans[idx].status = nextStatus;
+              localStorage.setItem('demo_loans', JSON.stringify(demoLoans));
+              loadDemoData();
+              showToast(nextStatus === '返却済み' ? '返却済みに変更しました' : '未返却に変更しました');
+            }
+            return;
+          }
+
+          try {
+            const docRef = doc(db, 'equipment_loans', docId);
+            await updateDoc(docRef, { status: nextStatus });
+            showToast(nextStatus === '返却済み' ? '返却済みに変更しました' : '未返却に変更しました');
+          } catch (err) {
+            console.error("Status Update Error:", err);
+          }
+        });
+      });
+
+      // 削除ボタン処理
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const docId = e.currentTarget.getAttribute('data-id');
+
+          if (isDemoMode) {
+            let demoLoans = JSON.parse(localStorage.getItem('demo_loans') || '[]');
+            demoLoans = demoLoans.filter(i => i.id !== docId);
+            localStorage.setItem('demo_loans', JSON.stringify(demoLoans));
+            loadDemoData();
+            showToast('記録を削除しました', 'fa-trash text-amber-400');
+            return;
+          }
+
+          try {
+            const docRef = doc(db, 'equipment_loans', docId);
+            await deleteDoc(docRef);
+            showToast('記録を削除しました', 'fa-trash text-amber-400');
+          } catch (err) {
+            console.error("Delete Error:", err);
+          }
+        });
+      });
+    };
+
+    const getStatusBadgeHTML = (status, isOverdue) => {
+      if (status === '返却済み') {
+        return `<span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1 shrink-0"><i class="fa-solid fa-check"></i> 返却済み</span>`;
+      }
+      if (isOverdue) {
+        return `<span class="bg-red-100 text-red-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-red-200 flex items-center gap-1 shrink-0 animate-pulse"><i class="fa-solid fa-triangle-exclamation"></i> 延滞中</span>`;
+      }
+      return `<span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200 flex items-center gap-1 shrink-0"><i class="fa-solid fa-clock"></i> 未返却</span>`;
+    };
+
+    const escapeHTML = (str) => {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    };
+
+    searchQuery.addEventListener('input', renderLoansList);
+    filterStatus.addEventListener('change', renderLoansList);
+
+  </script>
+</body>
+</html>
